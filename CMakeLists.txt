@@ -10,6 +10,11 @@ add_executable(main
     main.c
 )
 
+### https://forums.raspberrypi.com/viewtopic.php?t=301902
+# pico_define_boot_stage2(slower_boot2 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
+# target_compile_definitions(slower_boot2 PRIVATE PICO_FLASH_SPI_CLKDIV=4)
+# pico_set_boot_stage2(main slower_boot2)
+
 pico_enable_stdio_usb(main 1)
 pico_enable_stdio_uart(main 0)
 
@@ -23,3 +28,5 @@ target_link_libraries(main
     pico_multicore
     hardware_pio
     )
+
+    

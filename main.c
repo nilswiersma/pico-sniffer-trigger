@@ -43,6 +43,11 @@ static void __time_critical_func(core1_main)() {
             gpio_put(PICO_DEFAULT_LED_PIN, 1);
             match_counter = 0;
         }
+
+        if (ref_pattern[match_counter] == c) {
+            gpio_put(PICO_DEFAULT_LED_PIN, 0);
+            ++match_counter;
+        }
         
         if (match_counter == 4) {
             gpio_put(OUT_TRIGGER, 1);
@@ -64,6 +69,8 @@ static void __time_critical_func(core1_main)() {
 
 int main() {
     char c;
+
+    // set_sys_clock_khz(270000, true);
 
     stdio_init_all();
     

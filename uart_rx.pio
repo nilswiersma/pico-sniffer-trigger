@@ -13,19 +13,16 @@
 ;     push                ; important in case the TX clock is slightly too fast.
 
 .program uart_rx
-
 start:
     wait 0 pin 0        ; Stall until start bit is asserted
-    set x, 7    [22]    ; Preload bit counter, then delay until halfway through
-bitloop:                ; the first data bit (12 cycles incl wait, set).
+    set x, 7    [18]    ; Preload bit counter, then delay until at the beginning of the bit of
+bitloop:                ; the first data bit (24 cycles incl wait, set).
     in pins, 1          ; Shift data bit into ISR
-    jmp x-- bitloop [14] ; Loop 8 times, each loop iteration is 8 cycles
+    jmp x-- bitloop [14] ; Loop 8 times, each loop iteration is 16 cycles
     jmp pin good_stop   ; Check stop bit (should be high)
-
     irq 4 rel           ; Either a framing error or a break. Set a sticky flag,
     wait 1 pin 0        ; and wait for line to return to idle state.
     jmp start           ; Don't push data if we didn't see good framing.
-
 good_stop:              ; No delay before returning to start; a little slack is
     push                ; important in case the TX clock is slightly too fast.
 
@@ -46,7 +43,7 @@ static inline void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin,
     sm_config_set_in_shift(&c, true, false, 32);
     // Deeper FIFO as we're not doing any TX
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
-    // SM transmits 1 bit per 8 execution cycles.
+    // SM transmits 1 bit per 16 execution cycles.
     float div = (float)clock_get_hz(clk_sys) / (16 * baud);
     sm_config_set_clkdiv(&c, div);
     

@@ -9,7 +9,6 @@
 #define WITH_OUTPUT 1
 
 #define FIFO_SIZE 64
-#define SERIAL_BAUD 115200
 
 #define PIO_RX_PIN 5
 #define PIO_SIDESET 7
@@ -21,11 +20,15 @@ static uint offset;
 // For pushing data back from core1 to core0 for printing
 static queue_t fifo;
 
+#define PATTERN_LEN_MAX 1024
+static uint baudrate;
+static char pattern[PATTERN_LEN_MAX];
+static uint pattern_len = PATTERN_LEN_MAX + 1;
+
 static void __time_critical_func(core1_main)() {
     // Wait for a uart char to appear on the FIFO
     io_rw_8 *rxfifo_shift = (io_rw_8*)&pio->rxf[sm] + 3;
     char c;
-    char ref_pattern[] = {'1', '2', '3', '4'};
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
     int match_counter = 0;
 
@@ -36,7 +39,7 @@ static void __time_critical_func(core1_main)() {
         
         c = (char)*rxfifo_shift;
 
-        if (ref_pattern[match_counter] == c) {
+        if (pattern[match_counter] == c) {
             gpio_put(PICO_DEFAULT_LED_PIN, 0);
             ++match_counter;
         } else {
@@ -44,7 +47,7 @@ static void __time_critical_func(core1_main)() {
             match_counter = 0;
         }
 
-        if (ref_pattern[match_counter] == c) {
+        if (pattern[match_counter] == c) {
             gpio_put(PICO_DEFAULT_LED_PIN, 0);
             ++match_counter;
         }
@@ -69,13 +72,13 @@ static void __time_critical_func(core1_main)() {
 
 int main() {
     char c;
+    int i;
 
-    // set_sys_clock_khz(270000, true);
+    // set_sys_clock_khz(300000, true);
 
     stdio_init_all();
     
-    // getchar();
-    printf("Hello, world!!!\n");
+    getchar();
 
     queue_init(&fifo, 1, FIFO_SIZE);
 
@@ -91,8 +94,27 @@ int main() {
     gpio_init(OUT_TRIGGER);
     gpio_set_dir(OUT_TRIGGER, GPIO_OUT);
     gpio_put(OUT_TRIGGER, 0);
+
+    printf("baudrate?\n>");
+    scanf("%d", &baudrate);
+    printf(" %d\n", baudrate);
     
-    uart_rx_program_init(pio, sm, offset, PIO_RX_PIN, SERIAL_BAUD);
+    while (pattern_len > 1024) {
+        printf("pattern_len?\n>");
+        scanf("%d", &pattern_len);
+        printf(" %d\n", pattern_len);
+    }
+
+    printf("pattern?\n>");
+    for (i = 0; i < pattern_len; ++i) {
+        pattern[i] = getchar();
+    }
+    for (i = 0; i < pattern_len; ++i) {
+        printf("%02x", pattern[i]);
+    }
+    printf("\n");
+
+    uart_rx_program_init(pio, sm, offset, PIO_RX_PIN, baudrate);
     multicore_launch_core1(core1_main);
 
 #ifdef WITH_OUTPUT
